@@ -1,10 +1,10 @@
 import java.util.Map;
 
-public class TicTacToeService {
+public class TicTacToeService implements GameService {
 
     Map<Integer, TicTacToeGame> games;
 
-    Integer createNewGame(int gameDimension, int noOfPlayers, int minConsecutivesForWin)
+    public Integer createNewGame(int gameDimension, int noOfPlayers, int minConsecutivesForWin)
     {
         TicTacToeGame ticTacToeGame = new TicTacToeGame(gameDimension,noOfPlayers,minConsecutivesForWin);
         int gameId = games.size() + 1;
@@ -12,7 +12,7 @@ public class TicTacToeService {
         return gameId;
     }
 
-    int getNextPlayer(int gameId)
+    public int getNextPlayer(int gameId)
     {
         return games.get(gameId).getNextPlayer();
     }

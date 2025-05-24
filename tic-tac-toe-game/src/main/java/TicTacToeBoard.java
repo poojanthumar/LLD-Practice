@@ -1,6 +1,7 @@
 public class TicTacToeBoard {
-    Integer[][] grid;
-    int gridDimension;
+    private Integer[][] grid;
+
+    private int gridDimension;
 
     TicTacToeBoard(int gridDimension)
     {
@@ -11,6 +12,17 @@ public class TicTacToeBoard {
     void updatedBoard(int row, int col, int player)
     {
         grid[row][col] = player;
+    }
+    public int getGridDimension() {
+        return gridDimension;
+    }
+
+    public Integer[][] getGrid() {
+        return grid;
+    }
+    Integer getGridValue(int row, int col)
+    {
+        return grid[row][col];
     }
 
 

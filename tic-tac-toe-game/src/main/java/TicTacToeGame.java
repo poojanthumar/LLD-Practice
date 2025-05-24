@@ -25,9 +25,9 @@ public class TicTacToeGame {
         if(currentPlayer != player) return new MoveResult(GameStatus.CONTINUE,MoveStatus.WRONG_PLAYER, player);
         if(chancesLeft < 0) return new MoveResult(GameStatus.WIN,MoveStatus.GAME_COMPLETED, wonPlayer);
         if(chancesLeft == 0) return new MoveResult(GameStatus.DRAW,MoveStatus.GAME_COMPLETED, currentPlayer);
-        if(row >= board.gridDimension) return new MoveResult(GameStatus.CONTINUE, MoveStatus.OUT_OF_BOUNDS, player);
-        if(col >= board.gridDimension) return new MoveResult(GameStatus.CONTINUE, MoveStatus.OUT_OF_BOUNDS, player);
-        if(Objects.nonNull(board.grid[row][col])) return new MoveResult(GameStatus.CONTINUE, MoveStatus.DUPLICATE, player);
+        if(row >= board.getGridDimension()) return new MoveResult(GameStatus.CONTINUE, MoveStatus.OUT_OF_BOUNDS, player);
+        if(col >= board.getGridDimension()) return new MoveResult(GameStatus.CONTINUE, MoveStatus.OUT_OF_BOUNDS, player);
+        if(Objects.nonNull(board.getGridValue(row,col))) return new MoveResult(GameStatus.CONTINUE, MoveStatus.DUPLICATE, player);
 
         board.updatedBoard(row,col,currentPlayer);
         if(isWon(row,col)) {
@@ -50,15 +50,15 @@ public class TicTacToeGame {
     public boolean isWon(int row, int col)
     {
         // check row
-        int player = board.grid[row][col];
+        int player = board.getGridValue(row,col);
         int consecutive = 1;
         int j = col + 1;
-        while(j < board.gridDimension && player == board.grid[row][j]) {
+        while(j < board.getGridDimension() && player == board.getGridValue(row,j)) {
             j++;
             consecutive++;
         }
         j = col - 1;
-        while(j > -1 && player == board.grid[row][j]) {
+        while(j > -1 && player == board.getGridValue(row,j)) {
             j--;
             consecutive++;
         }
@@ -69,12 +69,12 @@ public class TicTacToeGame {
         // check col
         consecutive = 1;
         int i = row + 1;
-        while(i < board.gridDimension && player == board.grid[i][col]) {
+        while(i < board.getGridDimension() && player == board.getGridValue(i,col)) {
             i++;
             consecutive++;
         }
         i = row - 1;
-        while(i > -1 && player == board.grid[i][col]) {
+        while(i > -1 && player == board.getGridValue(i,col)) {
             i--;
             consecutive++;
         }
@@ -86,14 +86,14 @@ public class TicTacToeGame {
         consecutive = 1;
         i = row + 1;
         j = col + 1;
-        while(i < board.gridDimension && j < board.gridDimension && player == board.grid[i][j]) {
+        while(i < board.getGridDimension() && j < board.getGridDimension() && player == board.getGridValue(i,j)) {
             i++;
             j++;
             consecutive++;
         }
         i = row - 1;
         j = col - 1;
-        while(i > -1 && j > -1 && player == board.grid[i][j]) {
+        while(i > -1 && j > -1 && player == board.getGridValue(i,j)) {
             i--;
             j--;
             consecutive++;
@@ -107,14 +107,14 @@ public class TicTacToeGame {
         consecutive = 1;
         i = row - 1;
         j = col + 1;
-        while(i > -1 && j < board.gridDimension && player == board.grid[i][j]) {
+        while(i > -1 && j < board.getGridDimension() && player == board.getGridValue(i,j)) {
             i--;
             j++;
             consecutive++;
         }
         i = row + 1;
         j = col - 1;
-        while(i < board.gridDimension && j > -1 && player == board.grid[i][j]) {
+        while(i < board.getGridDimension() && j > -1 && player == board.getGridValue(i,j)) {
             i++;
             j--;
             consecutive++;
