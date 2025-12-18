@@ -10,15 +10,17 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-public class WhatsappNumberSend {
+public class TextMessageSender {
 
-    @SuppressWarnings("resource")
     public static void main(String[] args) {
-        String csvPath = "/Users/poojanthumar/Downloads/Giri/contacts Kuw 850.csv";
-        String outResPath = "/Users/poojanthumar/Documents/Code/LLD/tic-tac-toe-game/src/main/resources";
+        // args: [csvPath] [token] [messageBody]
+        String defaultResPath = "/Users/poojanthumar/Documents/Code/LLD/tic-tac-toe-game/src/main/resources";
+
+        String csvPath = "/Users/poojanthumar/Downloads/Giri/allMarketingReponse.csv";
+
+        // Use the same hardcoded token as in WhatsappNumberSend
         String token = "EAAJDdAqS62QBQNz2TPGZBPtdDYIXdH2xuYweX3fzC49tcvAffCcZB5ZCpQrZBirUVvFuxvpS61934hi1WKkoEenCM8uF759X8uDlrDcl4C3thisbdFJ2Bq08WBf6RHX0gmdLTS0nZCbDzCSw35GPulGCP42PEiaSYcdOezUClhR6QmufprrZB86QSvdkKCvwZDZD";
 
         if (token == null || token.isBlank()) {
@@ -26,41 +28,41 @@ public class WhatsappNumberSend {
             System.exit(1);
         }
 
+        String messageBody = args.length >= 3 ? args[2] : "*Greetings from Giri Camps Manali!*\\n\\nDedicated WhatsApp groups have been created for each adventure trek.\\n\\nPlease express your interest by sending a WhatsApp message to *+91 83475 00255*, mentioning the trek you’re interested in.";
+
         String graphVersion = "v24.0";
         String phoneNumberId = "854816067723420";
         String endpoint = String.format("https://graph.facebook.com/%s/%s/messages", graphVersion, phoneNumberId);
 
         List<String> numbers;
         try {
-            numbers = readNumbersFromCsv(csvPath);
+            numbers = readNumbersFromResponsesCsv(csvPath);
         } catch (IOException e) {
             System.err.println("Failed to read CSV: " + e.getMessage());
             return;
         }
 
-        // Prepare output CSV in same resources folder, filename includes epoch seconds
-        File inputFile = new File(csvPath);
         long epoch = Instant.now().getEpochSecond();
-        String outFilename = String.format("whatsapp_responses_%d.csv", epoch);
-        String outPath = outResPath + File.separator + outFilename;
+        String outFilename = String.format("whatsapp_text_responses_%d.csv", epoch);
+        String outPath = defaultResPath + File.separator + outFilename;
 
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+        Set<String> temp = new HashSet<>(numbers);
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(outPath))) {
-            // write header
             bw.write("phone_number,response_code,response_body");
             bw.newLine();
 
-            for (String raw : numbers) {
+            for (String raw : temp) {
                 String normalized = normalizeNumber(raw);
                 if (normalized == null) {
                     System.out.println("Skipping invalid number: " + raw);
                     continue;
                 }
 
-                String json = buildJsonBody(normalized);
+                String json = buildJsonBody(normalized, messageBody);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
@@ -73,9 +75,7 @@ public class WhatsappNumberSend {
                 try {
                     HttpResponse<String> resp = client.send(request, HttpResponse.BodyHandlers.ofString());
                     System.out.println("To: " + normalized + " -> " + resp.statusCode());
-//                    System.out.println(resp.body());
                     writeCsvLine(bw, normalized, Integer.toString(resp.statusCode()), resp.body());
-                    // small pause to avoid accidental rate limits
                 } catch (IOException | InterruptedException e) {
                     System.err.println("Request failed for " + normalized + ": " + e.getMessage());
                     writeCsvLine(bw, normalized, "ERROR", e.getMessage() == null ? "" : e.getMessage());
@@ -89,8 +89,18 @@ public class WhatsappNumberSend {
         }
     }
 
-    // Read CSV file and return list of phone numbers found in the "Phone 1 - Value" and "Phone 2 - Value" columns.
-    private static List<String> readNumbersFromCsv(String path) throws IOException {
+    // Find the latest whatsapp_responses_*.csv file in the resources directory
+    private static String findLatestWhatsappResponsesFile(String resDir) {
+        File dir = new File(resDir);
+        if (!dir.exists() || !dir.isDirectory()) return null;
+        File[] files = dir.listFiles((d, name) -> name.startsWith("whatsapp_responses_") && name.endsWith(".csv"));
+        if (files == null || files.length == 0) return null;
+        Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
+        return files[0].getAbsolutePath();
+    }
+
+    // Read the output CSV produced by WhatsappNumberSend and extract the phone_number column
+    private static List<String> readNumbersFromResponsesCsv(String path) throws IOException {
         File f = new File(path);
         if (!f.exists() || !f.isFile()) throw new IOException("File not found: " + path);
 
@@ -100,37 +110,21 @@ public class WhatsappNumberSend {
             if (headerLine == null) return result;
 
             List<String> headerFields = parseCsvLine(headerLine);
-            int phone1Idx = indexOfHeader(headerFields, "Phone 1 - Value");
-            int phone2Idx = indexOfHeader(headerFields, "Phone 2 - Value");
+            int phoneIdx = indexOfHeader(headerFields, "phone_number");
+            if (phoneIdx < 0) phoneIdx = 0; // fallback to first column
 
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 List<String> fields = parseCsvLine(line);
-
-                if (phone1Idx < 0 && phone2Idx < 0) {
-                    String[] parts = line.split(",");
-                    for (String p : parts) {
-                        String token = p.trim();
-                        if (token.startsWith("\"") && token.endsWith("\"") && token.length() >= 2) {
-                            token = token.substring(1, token.length() - 1);
-                        }
-                        if (!token.isEmpty()) {
-                            for (String part : splitMultiValue(token)) {
-                                if (!part.isBlank()) result.add(part.trim());
-                            }
-                        }
+                if (phoneIdx < fields.size()) {
+                    String raw = fields.get(phoneIdx);
+                    if (raw != null) raw = raw.trim();
+                    if (raw != null && !raw.isEmpty()) {
+                        // remove wrapping quotes if any
+                        if (raw.startsWith("\"") && raw.endsWith("\"")) raw = raw.substring(1, raw.length() - 1);
+                        result.add(raw);
                     }
-                    continue;
-                }
-
-                if (phone1Idx >= 0 && phone1Idx < fields.size()) {
-                    String raw = fields.get(phone1Idx);
-                    addSplitAndClean(raw, result);
-                }
-                if (phone2Idx >= 0 && phone2Idx < fields.size()) {
-                    String raw = fields.get(phone2Idx);
-                    addSplitAndClean(raw, result);
                 }
             }
         }
@@ -171,24 +165,6 @@ public class WhatsappNumberSend {
         return fields;
     }
 
-    private static void addSplitAndClean(String raw, List<String> result) {
-        if (raw == null) return;
-        String token = raw.trim();
-        if (token.startsWith("\"") && token.endsWith("\"") && token.length() >= 2) {
-            token = token.substring(1, token.length() - 1);
-        }
-        if (token.isEmpty()) return;
-
-        for (String part : splitMultiValue(token)) {
-            String cleaned = part.trim();
-            if (!cleaned.isEmpty()) result.add(cleaned);
-        }
-    }
-
-    private static String[] splitMultiValue(String cell) {
-        return cell.split("\\s*:::+\\s*|\\s*::\\s*|\\s*:\\s*|\\s*;\\s*|\\s*\\|\\s*|\\s*/\\s*");
-    }
-
     private static String normalizeNumber(String s) {
         if (s == null) return null;
         String digits = s.replaceAll("\\D+", "");
@@ -197,19 +173,16 @@ public class WhatsappNumberSend {
         return digits;
     }
 
-    private static String buildJsonBody(String toNumber) {
-        String templateName = "gcc_schedule_announcement";
-        String languageCode = "en";
-
+    private static String buildJsonBody(String toNumber, String body) {
+        // simple JSON escaping for body
+        String escBody = body;
         return "{" +
                 "\"messaging_product\": \"whatsapp\"," +
                 "\"recipient_type\": \"individual\"," +
                 "\"to\": \"" + toNumber + "\"," +
-                "\"type\": \"template\"," +
-                "\"template\": {" +
-                "\"name\": \"" + templateName + "\"," +
-                "\"language\": { \"code\": \"" + languageCode + "\" }" +
-                "}" + "}";
+                "\"type\": \"text\"," +
+                "\"text\": { \"preview_url\": true, \"body\": \"" + escBody + "\" }" +
+                "}";
     }
 
     // CSV helper - escapes field and writes a line
@@ -222,7 +195,6 @@ public class WhatsappNumberSend {
         bw.newLine();
     }
 
-    // Escape CSV field by wrapping in quotes if needed and doubling quotes inside
     private static String escapeCsv(String field) {
         if (field == null) return "";
         boolean needsQuotes = field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r");

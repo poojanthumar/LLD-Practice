@@ -1,0 +1,4 @@
+phone_number,response_code,response_body
+918347500255,200,"{""messaging_product"":""whatsapp"",""contacts"":[{""input"":""97433566071"",""wa_id"":""97433566071""}],""messages"":[{""id"":""wamid.HBgLOTc0MzM1NjYwNzEVAgARGBI3Q0VCMzA1MjkyMTQ2REJFMzMA"",""message_status"":""accepted""}]}"
++918347500255,200,"{""messaging_product"":""whatsapp"",""contacts"":[{""input"":""919173275115"",""wa_id"":""919173275115""}],""messages"":[{""id"":""wamid.HBgMOTE5MTczMjc1MTE1FQIAERgSRjkxNzJBNENGM0QwOENBMUVGAA=="",""message_status"":""accepted""}]}"
++918171017931,200,"{""messaging_product"":""whatsapp"",""contacts"":[{""input"":""919173275115"",""wa_id"":""919173275115""}],""messages"":[{""id"":""wamid.HBgMOTE5MTczMjc1MTE1FQIAERgSRjkxNzJBNENGM0QwOENBMUVGAA=="",""message_status"":""accepted""}]}"
